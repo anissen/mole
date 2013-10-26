@@ -1,5 +1,10 @@
 
-var game = new Phaser.Game(450, 700, Phaser.AUTO, 'phaser-example', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(480, 800, Phaser.AUTO, 'phaser-example', {
+  preload: preload,
+  create: create,
+  update: update,
+  render: render
+});
 
 var player;
 var cursors;
@@ -19,7 +24,10 @@ var playerStartY;
 
 var destX;
 
-var emitter;
+var sandEmitter;
+var stoneEmitter;
+
+var tileSize = 96;
 
 var tileData = [
   {
@@ -36,20 +44,31 @@ var tileData = [
   }];
 
 function preload() {
-  game.load.image('background','assets/games/tanks/earth.png');
-  game.load.spritesheet('tile', 'assets/buttons/number-buttons-90x90.png', 90, 90);
+  game.load.image('background','assets/platformer/Tiles/tiling_underground.png');
+  // game.load.spritesheet('tile', 'assets/buttons/number-buttons-90x90.png', 90, 90);
+  //game.load.spritesheet('player', 'assets/mole/mole.png', 155, 100);
   game.load.image('player', 'assets/sprites/shinyball.png');
-  game.load.image('magma','assets/platformer/Tiles/liquidLavaTop_mid.png');
+  game.load.image('sand', 'assets/platformer/Tiles/sandCenter.png');
+  game.load.image('dirt', 'assets/platformer/Tiles/stoneCenter.png');
+  game.load.image('stone', 'assets/platformer/Tiles/blah.png');
+  game.load.image('magma','assets/platformer/Tiles/magma.png');
+  // game.load.image('magma','assets/platformer/Tiles/liquidLavaTop_mid.png');
   game.load.image('brick','assets/games/breakout/brick2.png');
-  game.load.image('magmaCenter','assets/platformer/Tiles/liquidLava.png');
+  // game.load.image('magmaCenter','assets/platformer/Tiles/liquidLava.png');
   game.load.image('diamond', 'assets/games/starstruck/star.png');
+  // game.load.spritesheet('pebble', 'assets/mole/pebbles.png', 45, 63);
+
+  game.load.image('sandPebble1', 'assets/platformer/Items/particleBrick1a.png');
+  game.load.image('sandPebble2', 'assets/platformer/Items/particleBrick1b.png');
+  game.load.image('stonePebble1', 'assets/platformer/Items/particleBrick2a.png');
+  game.load.image('stonePebble2', 'assets/platformer/Items/particleBrick2b.png');
 }
 
 function create() {
   game.world.setBounds(0, 0, game.width, game.height * 100);
   game.add.tileSprite(0, 0, game.world.width, game.world.height * 100, 'background');
 
-  magma = game.add.tileSprite(0, game.world.height - 100, game.world.width, game.world.height, 'brick');
+  magma = game.add.tileSprite(0, game.world.height - 100, game.world.width, game.world.height, 'magma');
   magma.body.velocity.y = -80;
 
   /*
@@ -65,17 +84,32 @@ function create() {
 
   //var rnd = new Phaser.RandomDataGenerator([42]);
 
-  emitter = game.add.emitter(0, 0, 1000);
-  emitter.minParticleSpeed.setTo(-200, 0);
-  emitter.maxParticleSpeed.setTo(200, 200);
-  emitter.gravity = 8;
-  emitter.bounce.setTo(0.5, 0.5);
-  emitter.particleDrag.x = 10;
-  emitter.angularDrag = 30;
-  emitter.makeParticles('diamond');
+  sandEmitter = game.add.emitter(0, 0, 1000);
+  sandEmitter.minParticleSpeed.setTo(-200, 0);
+  sandEmitter.maxParticleSpeed.setTo(200, 200);
+  sandEmitter.gravity = 8;
+  sandEmitter.bounce.setTo(0.5, 0.5);
+  sandEmitter.particleDrag.x = 10;
+  sandEmitter.angularDrag = 30;
+  sandEmitter.makeParticles(['sandPebble1', 'sandPebble2'], undefined, undefined, undefined, true);
+
+  stoneEmitter = game.add.emitter(0, 0, 1000);
+  stoneEmitter.minParticleSpeed.setTo(-200, 0);
+  stoneEmitter.maxParticleSpeed.setTo(200, 200);
+  stoneEmitter.gravity = 8;
+  stoneEmitter.bounce.setTo(0.5, 0.5);
+  stoneEmitter.particleDrag.x = 10;
+  stoneEmitter.angularDrag = 30;
+  stoneEmitter.makeParticles(['stonePebble1', 'stonePebble2'], undefined, undefined, undefined, true);
 
   playerStartY = game.world.height - game.height / 2;
   player = game.add.sprite(game.width / 2, playerStartY, 'player');
+  player.anchor.setTo(0.5, 0.5);
+  // player.scale.x = player.scale.y = 0.3;
+  player.body.collideWorldBounds = true;
+
+  // player.animations.add('dig');
+  // player.animations.play('dig', 30, true);
 
   tileGroup = game.add.group();
 
@@ -96,7 +130,7 @@ function restart() {
   for (var y = 0; y < 72; y++) {
     for (var x = 0; x < 5; x++) {
       var tileType = game.rnd.integerInRange(0,3);
-      var sprite = tileGroup.create(90 * x, game.world.height - game.height - 90 * y, 'tile', tileType);
+      var sprite = tileGroup.create(tileSize * x, game.world.height - game.height - tileSize * y, tileData[tileType].name);
       sprite.type = tileType;
       sprite.health = tileData[tileType].health;
       sprite.body.immovable = true;
@@ -114,9 +148,9 @@ function restart() {
 
 function update() {
   // if (game.input.keyboard.justPressed(Phaser.Keyboard.LEFT)) {
-  //   destX = player.x - 90;
+  //   destX = player.x - tileSize;
   // } else if (game.input.keyboard.justPressed(Phaser.Keyboard.LEFT)) {
-  //   destX = player.x + 90;
+  //   destX = player.x + tileSize;
   // }
 
   // game.physics.moveToXY(player, destX || player.x, player.y, 200);
@@ -131,17 +165,20 @@ function update() {
 
   movePlayer();
 
-  var collision = game.physics.collide(player, tileGroup, collisionHandler, null, this);
-  player.scale.y = (collision ? 0.8 : 1);
+  // game.physics.moveToXY(player, Math.floor(player.x / tileSize) * tileSize + 45, Math.floor(player.y / tileSize) * tileSize + 45, 200);
 
-  game.physics.collide(emitter, tileGroup);
+  var collision = game.physics.collide(player, tileGroup, collisionHandler, null, this);
+  //player.scale.y = (collision ? 0.8 : 1);
+
+  game.physics.collide(sandEmitter, tileGroup);
+  game.physics.collide(stoneEmitter, tileGroup);
 
   if (player.alive && magma.y <= player.y + player.width / 2) {
     gameOverText.x = game.camera.x + game.camera.width / 2;
     gameOverText.y = game.camera.y + game.camera.height / 2;
     gameOverText.angle = 180;
     var distance = playerStartY - player.y;
-    gameOverText.content = 'Game Over\n\nYou escaped\n' + Math.round(distance / 90) + ' meters\nand dug\n' + tileGroup.countDead() + ' tiles';
+    gameOverText.content = 'Game Over\n\nYou escaped\n' + Math.round(distance / tileSize) + ' meters\nand dug\n' + tileGroup.countDead() + ' tiles';
     game.add.tween(gameOverText).to({alpha: 0.9, angle: 0}, 2000, Phaser.Easing.Elastic.Out, true, 0, false);
 
     player.kill();
@@ -158,17 +195,28 @@ function collisionHandler(player, tile) {
   if (!lastTile || tile.type !== lastTile.type)
     damage = 3;
   lastTile = tile;
-  tile.alpha = tile.health / tileData[tile.type].health;
+  //tile.alpha = tile.health / tileData[tile.type].health;
   tile.damage(damage);
   movePlayer();
-  particleBurst();
+
+  if (tile.type < 1)
+    sandParticleBurst();
+  else
+    stoneParticleBurst();
 }
 
-function particleBurst() {
-  emitter.x = player.x + player.width / 2;
-  emitter.y = player.y;
+function sandParticleBurst() {
+  sandEmitter.x = player.x + player.width / 2;
+  sandEmitter.y = player.y;
 
-  emitter.start(true, 1000, null, damage / 10);
+  sandEmitter.start(true, 1000, null, damage / 10);
+}
+
+function stoneParticleBurst() {
+  stoneEmitter.x = player.x + player.width / 2;
+  stoneEmitter.y = player.y;
+
+  stoneEmitter.start(true, 1000, null, damage / 10);
 }
 
 function movePlayer() {
@@ -178,9 +226,9 @@ function movePlayer() {
       player.body.velocity.y = -200;
       break;
     case MOVE_LEFT:
-      //game.physics.moveToXY(player, player.x - 90, player.y, 200);
+      //game.physics.moveToXY(player, player.x - tileSize, player.y, 200);
       // game.add.tween(player)
-      //   .to({x: player.x - 90}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
+      //   .to({x: player.x - tileSize}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
       //   .onCompleteCallback(function() {
       //     console.log('done');
       //   });
@@ -191,7 +239,7 @@ function movePlayer() {
       player.body.velocity.x = 200;
       player.body.velocity.y = 0;
       // game.add.tween(player)
-      //   .to({x: player.x + 90}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
+      //   .to({x: player.x + tileSize}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
       //   .onCompleteCallback(function() {
       //     console.log('done');
       //   });
@@ -199,5 +247,11 @@ function movePlayer() {
 }
 
 function render() {
-  // game.debug.renderCameraInfo(game.camera, 32, 32);
+  // game.debug.renderSpriteInfo(player, player.x, player.y);
+  // game.debug.renderSpriteCollision(player, player.x, player.y + 100);
+
+  //game.debug.renderSpriteBounds(player, 'red');
+  game.debug.currentX = player.x;
+  game.debug.currentY = player.y;
+  game.debug.renderSpriteCorners(player);
 }
