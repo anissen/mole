@@ -31,6 +31,10 @@ var tileSize = 96;
 
 var tileData = [
   {
+    name: 'power-up',
+    health: 25
+  },
+  {
     name: 'sand',
     health: 50
   },
@@ -46,11 +50,12 @@ var tileData = [
 function preload() {
   game.load.image('background','assets/platformer/Tiles/tiling_underground.png');
   // game.load.spritesheet('tile', 'assets/buttons/number-buttons-90x90.png', 90, 90);
-  //game.load.spritesheet('player', 'assets/mole/mole.png', 155, 100);
-  game.load.image('player', 'assets/sprites/shinyball.png');
+  game.load.spritesheet('player', 'assets/mole/mole.png', 145, 90);
+  // game.load.image('player', 'assets/sprites/shinyball.png');
   game.load.image('sand', 'assets/platformer/Tiles/sandCenter.png');
   game.load.image('dirt', 'assets/platformer/Tiles/stoneCenter.png');
   game.load.image('stone', 'assets/platformer/Tiles/blah.png');
+  game.load.image('power-up', 'assets/platformer/Tiles/boxItemAlt.png');
   game.load.image('magma','assets/platformer/Tiles/magma.png');
   // game.load.image('magma','assets/platformer/Tiles/liquidLavaTop_mid.png');
   game.load.image('brick','assets/games/breakout/brick2.png');
@@ -105,11 +110,12 @@ function create() {
   playerStartY = game.world.height - game.height / 2;
   player = game.add.sprite(game.width / 2, playerStartY, 'player');
   player.anchor.setTo(0.5, 0.5);
-  // player.scale.x = player.scale.y = 0.3;
+  player.scale.x = player.scale.y = 0.4;
   player.body.collideWorldBounds = true;
+  player.angle = 270;
 
-  // player.animations.add('dig');
-  // player.animations.play('dig', 30, true);
+  player.animations.add('dig');
+  player.animations.play('dig', 30, true);
 
   tileGroup = game.add.group();
 
@@ -129,7 +135,9 @@ function restart() {
 
   for (var y = 0; y < 72; y++) {
     for (var x = 0; x < 5; x++) {
-      var tileType = game.rnd.integerInRange(0,3);
+      var tileType = 0;
+      if (game.rnd.integerInRange(0,100) < 99)
+        tileType = game.rnd.integerInRange(1,4);
       var sprite = tileGroup.create(tileSize * x, game.world.height - game.height - tileSize * y, tileData[tileType].name);
       sprite.type = tileType;
       sprite.health = tileData[tileType].health;
@@ -191,15 +199,15 @@ function update() {
 
 function collisionHandler(player, tile) {
   if (tile !== lastTile)
-    damage += 3;
+    damage += 4;
   if (!lastTile || tile.type !== lastTile.type)
-    damage = 3;
+    damage = 4;
   lastTile = tile;
   //tile.alpha = tile.health / tileData[tile.type].health;
   tile.damage(damage);
   movePlayer();
 
-  if (tile.type < 1)
+  if (tile.type < 2)
     sandParticleBurst();
   else
     stoneParticleBurst();
@@ -223,20 +231,20 @@ function movePlayer() {
   switch (moveDirection) {
     case MOVE_UP:
       player.body.velocity.x = 0;
-      player.body.velocity.y = -200;
+      player.body.velocity.y = -250;
       break;
     case MOVE_LEFT:
-      //game.physics.moveToXY(player, player.x - tileSize, player.y, 200);
+      //game.physics.moveToXY(player, player.x - tileSize, player.y, 250);
       // game.add.tween(player)
       //   .to({x: player.x - tileSize}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
       //   .onCompleteCallback(function() {
       //     console.log('done');
       //   });
-      player.body.velocity.x = -200;
+      player.body.velocity.x = -250;
       player.body.velocity.y = 0;
       break;
     case MOVE_RIGHT:
-      player.body.velocity.x = 200;
+      player.body.velocity.x = 250;
       player.body.velocity.y = 0;
       // game.add.tween(player)
       //   .to({x: player.x + tileSize}, 500, Phaser.Easing.Bounce.Out, true, 0, false)
